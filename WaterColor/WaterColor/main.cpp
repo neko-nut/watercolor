@@ -44,19 +44,21 @@ GLfloat darkBlueColor[3] = { 0.0f, 0.0f, 0.4f };
 
 GLfloat rotate_y = 0.0f;
 
-Shader* shader;
+Shader* objectShader;
+Shader* edgeShader;
 Shader* boardShader;
 Mesh* cubemesh;
 Texture* texture;
 Cube* cube;
 Board* board;
-FrameBuffer* originBuffer;
+FrameBuffer* objectBuffer;
+FrameBuffer* edgeBuffer;
 
 GLfloat lightstate = 0;
 
 void display() {
 
-	originBuffer->bindBuffer();
+	objectBuffer->bindBuffer();
 
 	// tell GL to only draw onto a pixel if the shape is closer to the viewer
 	glEnable(GL_DEPTH_TEST); // enable depth-testing
@@ -68,17 +70,17 @@ void display() {
 	mat4 persp_proj = perspective(45.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
 
-	glUseProgram(shader->ID);
+	glUseProgram(objectShader->ID);
 	//Declare your uniform variables that will be used in your shader
-	int matrix_location = glGetUniformLocation(shader->ID, "model");
-	int view_mat_location = glGetUniformLocation(shader->ID, "view");
-	int proj_mat_location = glGetUniformLocation(shader->ID, "proj");
-	int objectColor = glGetUniformLocation(shader->ID, "objectColor");
-	int darkColor = glGetUniformLocation(shader->ID, "darkColor");
+	int matrix_location = glGetUniformLocation(objectShader->ID, "model");
+	int view_mat_location = glGetUniformLocation(objectShader->ID, "view");
+	int proj_mat_location = glGetUniformLocation(objectShader->ID, "proj");
+	int objectColor = glGetUniformLocation(objectShader->ID, "objectColor");
+	int darkColor = glGetUniformLocation(objectShader->ID, "darkColor");
 
 
-	GLuint routineC1 = glGetSubroutineIndex(shader->ID, GL_FRAGMENT_SHADER, "redColor");
-	GLuint routineC2 = glGetSubroutineIndex(shader->ID, GL_FRAGMENT_SHADER, "blueColor");
+	GLuint routineC1 = glGetSubroutineIndex(objectShader->ID, GL_FRAGMENT_SHADER, "redColor");
+	GLuint routineC2 = glGetSubroutineIndex(objectShader->ID, GL_FRAGMENT_SHADER, "blueColor");
 
 
 	glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &routineC1);
@@ -93,14 +95,14 @@ void display() {
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
 	glUniform3fv(objectColor, 1, lightBlueColor);
 	glUniform3fv(darkColor, 1, darkBlueColor);
-	cube->linkCurrentBuffertoShader(shader->ID);
+	cube->linkCurrentBuffertoShader(objectShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	model = translate(model, vec3(3.5f, 0.0f, 0.0f));
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
 	glUniform3fv(objectColor, 1, lightGreenColor);
 	glUniform3fv(darkColor, 1, darkGreenColor);
-	cube->linkCurrentBuffertoShader(shader->ID);
+	cube->linkCurrentBuffertoShader(objectShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
@@ -108,18 +110,29 @@ void display() {
 	glUniform3fv(darkColor, 1, darkRedColor);
 	model = translate(model, vec3(-7.0f, 0.0f, 0.0f));
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
-	cube->linkCurrentBuffertoShader(shader->ID);
+	cube->linkCurrentBuffertoShader(objectShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glDisableVertexAttribArray(0);
 
-	originBuffer->viewBuffer(width, height);
+	objectBuffer->viewBuffer(width, height);
+
+	edgeBuffer->bindBuffer();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glUseProgram(edgeShader->ID);
+	GLuint texture = glGetAttribLocation(edgeShader->ID, "objectTexture");
+	objectBuffer->bindTexture(GL_TEXTURE0);
+	glUniform1i(texture, 0);
+	board->linkCurrentBuffertoShader(edgeShader->ID);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glDisableVertexAttribArray(0);
+	edgeBuffer->viewBuffer(width, height);
 
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(boardShader->ID);
-	GLuint texture = glGetAttribLocation(boardShader->ID, "ourTexture");
-	originBuffer->bindTexture(GL_TEXTURE_2D);
-	glUniform1i(texture, 0);
+	GLuint texture2 = glGetAttribLocation(boardShader->ID, "objectTexture");
+	edgeBuffer->bindTexture(GL_TEXTURE0);
+	glUniform1i(texture2, 0);
 	board->linkCurrentBuffertoShader(boardShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glDisableVertexAttribArray(0);
@@ -165,8 +178,10 @@ void updateScene() {
 
 void init()
 {
-	shader = new Shader();
-	shader->CompileShaders("../shaders/objectVS.glsl", "../shaders/objectFS.glsl");
+	objectShader = new Shader();
+	objectShader->CompileShaders("../shaders/objectVS.glsl", "../shaders/objectFS.glsl");
+	edgeShader = new Shader();
+	edgeShader->CompileShaders("../shaders/edgeVS.glsl", "../shaders/edgeFS.glsl");
 	boardShader = new Shader();
 	boardShader->CompileShaders("../shaders/boardVS.glsl", "../shaders/boardFS.glsl");
 
@@ -181,8 +196,10 @@ void init()
 	board = new Board();
 	board->generateObjectBuffer();
 
-	originBuffer = new FrameBuffer();
-	originBuffer->generateTextureBuffer(width, height);
+	objectBuffer = new FrameBuffer();
+	objectBuffer->generateTextureBuffer(width, height);
+	edgeBuffer = new FrameBuffer();
+	edgeBuffer->generateTextureBuffer(width, height);
 
 }
 int main(int argc, char** argv) {
