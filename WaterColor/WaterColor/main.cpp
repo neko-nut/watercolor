@@ -25,6 +25,8 @@
 #include "Cube.h"
 #include "Board.h"
 
+#include "frameBuffer.h"
+
 
 
 using namespace std;
@@ -48,12 +50,13 @@ Mesh* cubemesh;
 Texture* texture;
 Cube* cube;
 Board* board;
+FrameBuffer* originBuffer;
 
 GLfloat lightstate = 0;
 
 void display() {
 
-	glBindFramebuffer(GL_FRAMEBUFFER, board->Framebuffer);
+	originBuffer->bindBuffer();
 
 	// tell GL to only draw onto a pixel if the shape is closer to the viewer
 	glEnable(GL_DEPTH_TEST); // enable depth-testing
@@ -85,7 +88,7 @@ void display() {
 
 	mat4 model = identity_mat4();
 	model = scale(model, vec3(1.5f, 1.5f, 1.5f));
-	//model = rotate_y_deg(model, rotate_y);
+	model = rotate_y_deg(model, rotate_y);
 	model = translate(model, vec3(0.0f, 0.0f, -10.0f));
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
 	glUniform3fv(objectColor, 1, lightBlueColor);
@@ -109,10 +112,14 @@ void display() {
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glDisableVertexAttribArray(0);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glViewport(0, 0, width, height);
+	originBuffer->viewBuffer(width, height);
+
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(boardShader->ID);
+	GLuint texture = glGetAttribLocation(boardShader->ID, "ourTexture");
+	originBuffer->bindTexture(GL_TEXTURE_2D);
+	glUniform1i(texture, 0);
 	board->linkCurrentBuffertoShader(boardShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glDisableVertexAttribArray(0);
@@ -173,7 +180,9 @@ void init()
 	cube->generateObjectBuffer();
 	board = new Board();
 	board->generateObjectBuffer();
-	board->generateTextureBuffer(width, height);
+
+	originBuffer = new FrameBuffer();
+	originBuffer->generateTextureBuffer(width, height);
 
 }
 int main(int argc, char** argv) {

@@ -21,10 +21,7 @@ private:
 
 public:
 	GLuint VBO;
-	GLuint Framebuffer = 0;
-	GLuint renderedTexture;
 	GLuint generateObjectBuffer();
-	void generateTextureBuffer(int weight, int hight);
 	void linkCurrentBuffertoShader(GLuint shaderProgramID);
 };
 
