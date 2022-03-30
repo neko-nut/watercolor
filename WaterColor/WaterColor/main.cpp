@@ -49,6 +49,7 @@ Shader* edgeShader;
 Shader* boardShader;
 Mesh* cubemesh;
 Texture* texture;
+Texture* texture2;
 Cube* cube;
 Board* board;
 FrameBuffer* objectBuffer;
@@ -90,7 +91,7 @@ void display() {
 
 	mat4 model = identity_mat4();
 	model = scale(model, vec3(1.5f, 1.5f, 1.5f));
-	model = rotate_y_deg(model, rotate_y);
+	//model = rotate_y_deg(model, rotate_y);
 	model = translate(model, vec3(0.0f, 0.0f, -10.0f));
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
 	glUniform3fv(objectColor, 1, lightBlueColor);
@@ -112,27 +113,32 @@ void display() {
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
 	cube->linkCurrentBuffertoShader(objectShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
-	glDisableVertexAttribArray(0);
+	//glDisableVertexAttribArray(0);
 
 	objectBuffer->viewBuffer(width, height);
 
 	edgeBuffer->bindBuffer();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(edgeShader->ID);
-	GLuint texture = glGetAttribLocation(edgeShader->ID, "objectTexture");
+	GLuint textureID = glGetAttribLocation(edgeShader->ID, "objectTexture");
 	objectBuffer->bindTexture(GL_TEXTURE0);
-	glUniform1i(texture, 0);
+	glUniform1i(textureID, 0);
 	board->linkCurrentBuffertoShader(edgeShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
-	glDisableVertexAttribArray(0);
+	//glDisableVertexAttribArray(0);
 	edgeBuffer->viewBuffer(width, height);
 
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(boardShader->ID);
-	GLuint texture2 = glGetAttribLocation(boardShader->ID, "objectTexture");
-	edgeBuffer->bindTexture(GL_TEXTURE0);
-	glUniform1i(texture2, 0);
+	GLuint objectTexture = glGetUniformLocation(boardShader->ID, "objectTexture");
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
+	glUniform1i(objectTexture, 0);
+	GLuint edgeTexture = glGetUniformLocation(boardShader->ID, "edgeTexture");
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, edgeBuffer->renderedTexture);
+	glUniform1i(edgeTexture, 1);
 	board->linkCurrentBuffertoShader(boardShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glDisableVertexAttribArray(0);
@@ -188,8 +194,10 @@ void init()
 	cubemesh = new Mesh();
 	cubemesh->generateObjectBufferMesh("../models/Futuristic combat jet.dae");
 
-	texture = new Texture(GL_TEXTURE_2D, "../textures/Aircraft.jpg");
+	texture = new Texture(GL_TEXTURE_2D, "../textures/Floor_C.jpg");
 	texture->Load();
+	texture2 = new Texture(GL_TEXTURE_2D, "../textures/Floor_N.jpg");
+	texture2->Load();
 
 	cube = new Cube();
 	cube->generateObjectBuffer();
