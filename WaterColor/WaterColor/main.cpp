@@ -59,14 +59,17 @@ GLfloat lightstate = 0;
 
 void display() {
 
+
 	objectBuffer->bindBuffer();
 
 	// tell GL to only draw onto a pixel if the shape is closer to the viewer
 	glEnable(GL_DEPTH_TEST); // enable depth-testing
 	glDepthFunc(GL_LESS); // depth-testing interprets a smaller value as "closer"
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	
 	mat4 view = identity_mat4();
 	mat4 persp_proj = perspective(45.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
@@ -79,12 +82,6 @@ void display() {
 	int objectColor = glGetUniformLocation(objectShader->ID, "objectColor");
 	int darkColor = glGetUniformLocation(objectShader->ID, "darkColor");
 
-
-	GLuint routineC1 = glGetSubroutineIndex(objectShader->ID, GL_FRAGMENT_SHADER, "redColor");
-	GLuint routineC2 = glGetSubroutineIndex(objectShader->ID, GL_FRAGMENT_SHADER, "blueColor");
-
-
-	glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &routineC1);
 
 	glUniformMatrix4fv(proj_mat_location, 1, GL_FALSE, persp_proj.m);
 	glUniformMatrix4fv(view_mat_location, 1, GL_FALSE, view.m);
@@ -105,15 +102,14 @@ void display() {
 	glUniform3fv(darkColor, 1, darkGreenColor);
 	cube->linkCurrentBuffertoShader(objectShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
-
-
-	glUniform3fv(objectColor, 1, lightRedColor);
-	glUniform3fv(darkColor, 1, darkRedColor);
+	
 	model = translate(model, vec3(-7.0f, 0.0f, 0.0f));
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
+	glUniform3fv(objectColor, 1, lightRedColor);
+	glUniform3fv(darkColor, 1, darkRedColor);
 	cube->linkCurrentBuffertoShader(objectShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
-	//glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(0);
 
 	objectBuffer->viewBuffer(width, height);
 
@@ -125,7 +121,7 @@ void display() {
 	glUniform1i(textureID, 0);
 	board->linkCurrentBuffertoShader(edgeShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
-	//glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(0);
 	edgeBuffer->viewBuffer(width, height);
 
 
