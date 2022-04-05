@@ -39,7 +39,8 @@ void main()
     vec3 result = vec3(0.0);
     for(int i = 0; i < 9; i++)
         result = result + sampleTex[i] * kernel2[i];
-    //result = step(vec3(0.2, 0.2, 0.2), result);
+    result = step(vec3(0.2, 0.2, 0.2), result);
+    result = vec3(max(max(result.x, result.y), result.z));
 
     //gl_FragColor = vec4(result, 1.0) * texture(objectTexture, TexCoord);
     gl_FragColor = vec4(result, 1.0);
