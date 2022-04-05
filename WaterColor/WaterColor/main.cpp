@@ -37,16 +37,21 @@ int height = 600;
 GLfloat lightGreenColor[3] = { 0.8f, 1.0f, 0.8f };
 GLfloat lightRedColor[3] = { 1.0f, 0.8f, 0.8f };
 GLfloat lightBlueColor[3] = { 0.8f, 0.8f, 1.0f };
+GLfloat lightYellowColor[3] = { 0.9f, 0.9f, 0.7f };
+GLfloat lightGrayColor[3] = { 0.8f, 0.8f, 0.8f };
 
 GLfloat darkGreenColor[3] = { 0.0f, 0.4f, 0.0f };
 GLfloat darkRedColor[3] = { 0.4f, 0.0f, 0.0f };
 GLfloat darkBlueColor[3] = { 0.0f, 0.0f, 0.4f };
+GLfloat darkYellowColor[3] = { 0.4f, 0.4f, 0.0f };
+GLfloat darkGrayColor[3] = { 0.2f, 0.2f, 0.2f };
 
 GLfloat rotate_y = 0.0f;
 
 Shader* objectShader;
 Shader* edgeShader;
 Shader* boardShader;
+Shader* testShader;
 Mesh* cubemesh;
 Texture* texture;
 Texture* texture2;
@@ -89,7 +94,7 @@ void display() {
 	mat4 model = identity_mat4();
 	model = scale(model, vec3(1.5f, 1.5f, 1.5f));
 	//model = rotate_y_deg(model, rotate_y);
-	model = translate(model, vec3(0.0f, 0.0f, -10.0f));
+	model = translate(model, vec3(0.0f, -1.0f, -10.0f));
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
 	glUniform3fv(objectColor, 1, lightBlueColor);
 	glUniform3fv(darkColor, 1, darkBlueColor);
@@ -107,6 +112,20 @@ void display() {
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
 	glUniform3fv(objectColor, 1, lightRedColor);
 	glUniform3fv(darkColor, 1, darkRedColor);
+	cube->linkCurrentBuffertoShader(objectShader->ID);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+	model = translate(model, vec3(2.0f, 2.0f, 0.0f));
+	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
+	glUniform3fv(objectColor, 1, lightYellowColor);
+	glUniform3fv(darkColor, 1, darkYellowColor);
+	cube->linkCurrentBuffertoShader(objectShader->ID);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+	model = translate(model, vec3(3.5f, 0.0f, 0.0f));
+	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
+	glUniform3fv(objectColor, 1, lightGrayColor);
+	glUniform3fv(darkColor, 1, darkGrayColor);
 	cube->linkCurrentBuffertoShader(objectShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glDisableVertexAttribArray(0);
