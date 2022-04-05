@@ -94,7 +94,7 @@ void display() {
 	mat4 model = identity_mat4();
 	model = scale(model, vec3(1.5f, 1.5f, 1.5f));
 	//model = rotate_y_deg(model, rotate_y);
-	model = translate(model, vec3(0.0f, -1.0f, -10.0f));
+	model = translate(model, vec3(0.0f, 0.0f, -10.0f));
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
 	glUniform3fv(objectColor, 1, lightBlueColor);
 	glUniform3fv(darkColor, 1, darkBlueColor);
@@ -115,20 +115,6 @@ void display() {
 	cube->linkCurrentBuffertoShader(objectShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 
-	model = translate(model, vec3(2.0f, 2.0f, 0.0f));
-	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
-	glUniform3fv(objectColor, 1, lightYellowColor);
-	glUniform3fv(darkColor, 1, darkYellowColor);
-	cube->linkCurrentBuffertoShader(objectShader->ID);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
-
-	model = translate(model, vec3(3.5f, 0.0f, 0.0f));
-	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
-	glUniform3fv(objectColor, 1, lightGrayColor);
-	glUniform3fv(darkColor, 1, darkGrayColor);
-	cube->linkCurrentBuffertoShader(objectShader->ID);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
-	glDisableVertexAttribArray(0);
 
 	objectBuffer->viewBuffer(width, height);
 
@@ -145,6 +131,18 @@ void display() {
 
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glDisable(GL_DEPTH_TEST);
+
+
+	glUseProgram(testShader->ID);
+	GLuint testObjectTexture = glGetUniformLocation(testShader->ID, "objectTexture");
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
+	glUniform1i(testObjectTexture, 0);
+	board->linkCurrentBuffertoShader(testShader->ID);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+
 	glUseProgram(boardShader->ID);
 	GLuint objectTexture = glGetUniformLocation(boardShader->ID, "objectTexture");
 	glActiveTexture(GL_TEXTURE0);
@@ -157,6 +155,9 @@ void display() {
 	board->linkCurrentBuffertoShader(boardShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glDisableVertexAttribArray(0);
+
+
+
 
 	glutSwapBuffers();
 }
@@ -205,6 +206,8 @@ void init()
 	edgeShader->CompileShaders("../shaders/edgeVS.glsl", "../shaders/edgeFS.glsl");
 	boardShader = new Shader();
 	boardShader->CompileShaders("../shaders/boardVS.glsl", "../shaders/boardFS.glsl");
+	testShader = new Shader();
+	testShader->CompileShaders("../shaders/watercolorVS.glsl", "../shaders/watercolorFS.glsl");
 
 	cubemesh = new Mesh();
 	cubemesh->generateObjectBufferMesh("../models/Futuristic combat jet.dae");
