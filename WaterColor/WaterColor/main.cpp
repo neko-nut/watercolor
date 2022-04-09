@@ -16,6 +16,10 @@
 #include <assimp/scene.h> // collects data
 #include <assimp/postprocess.h> // various extra operations
 
+#include "../imgui-master/imgui.h"
+#include "../imgui-master/imgui_impl_glut.h"
+#include "../imgui-master/imgui_impl_opengl3.h"
+
 // Project includes
 #include "maths_funcs.h"
 
@@ -28,6 +32,9 @@
 #include "frameBuffer.h"
 
 
+#ifdef _MSC_VER
+#pragma warning (disable: 4505) // unreferenced local function has been removed
+#endif
 
 using namespace std;
 
@@ -51,7 +58,7 @@ GLfloat rotate_y = 0.0f;
 Shader* objectShader;
 Shader* edgeShader;
 Shader* boardShader;
-Shader* testShader;
+Shader* backgroundShader;
 Mesh* cubemesh;
 Texture* texture;
 Texture* texture2;
@@ -60,7 +67,11 @@ Board* board;
 FrameBuffer* objectBuffer;
 FrameBuffer* edgeBuffer;
 
-GLfloat lightstate = 0;
+GLfloat threshold = 0;
+bool displayEdgeExtraction = false;
+bool displaySmoothEdge = false;
+bool displayOrigin = false;
+bool displayResult = true;
 
 void display() {
 
@@ -93,7 +104,7 @@ void display() {
 
 	mat4 model = identity_mat4();
 	model = scale(model, vec3(1.5f, 1.5f, 1.5f));
-	//model = rotate_y_deg(model, rotate_y);
+	model = rotate_y_deg(model, rotate_y);
 	model = translate(model, vec3(0.0f, 0.0f, -10.0f));
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
 	glUniform3fv(objectColor, 1, lightBlueColor);
@@ -130,52 +141,68 @@ void display() {
 	edgeBuffer->viewBuffer(width, height);
 
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDisable(GL_DEPTH_TEST);
 
-
-	glUseProgram(testShader->ID);
-	GLuint testObjectTexture = glGetUniformLocation(testShader->ID, "objectTexture");
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
-	glUniform1i(testObjectTexture, 0);
-	board->linkCurrentBuffertoShader(testShader->ID);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-
-
-	glUseProgram(boardShader->ID);
-	GLuint objectTexture = glGetUniformLocation(boardShader->ID, "objectTexture");
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
-	glUniform1i(objectTexture, 0);
-	GLuint edgeTexture = glGetUniformLocation(boardShader->ID, "edgeTexture");
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, edgeBuffer->renderedTexture);
-	glUniform1i(edgeTexture, 1);
-	board->linkCurrentBuffertoShader(boardShader->ID);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	glDisableVertexAttribArray(0);
-
-
-
-
-	glutSwapBuffers();
-}
-
-
-// Placeholder code for the keypress
-void keypress(unsigned char key, int x, int y) {
-
-	if (key == ' ') {
-		if (lightstate == 0) {
-			lightstate = 1;
-		} else {
-			lightstate = 0;
-		}
+	if (displayOrigin) {
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glDisable(GL_DEPTH_TEST);
+		glUseProgram(backgroundShader->ID);
+		GLuint testObjectTexture = glGetUniformLocation(backgroundShader->ID, "objectTexture");
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
+		glUniform1i(testObjectTexture, 0);
+		board->linkCurrentBuffertoShader(backgroundShader->ID);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
 
-	glutPostRedisplay();
+
+	if (displayEdgeExtraction) {
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glDisable(GL_DEPTH_TEST);
+		glUseProgram(backgroundShader->ID);
+		GLuint testObjectTexture = glGetUniformLocation(backgroundShader->ID, "objectTexture");
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, edgeBuffer->renderedTexture);
+		glUniform1i(testObjectTexture, 0);
+		board->linkCurrentBuffertoShader(backgroundShader->ID);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+	}
+
+	
+	if (displayResult) {
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glDisable(GL_DEPTH_TEST);
+		glUseProgram(backgroundShader->ID);
+		GLuint testObjectTexture = glGetUniformLocation(backgroundShader->ID, "objectTexture");
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
+		glUniform1i(testObjectTexture, 0);
+		board->linkCurrentBuffertoShader(backgroundShader->ID);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+
+		glUseProgram(boardShader->ID);
+		GLuint objectTexture = glGetUniformLocation(boardShader->ID, "objectTexture");
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
+		glUniform1i(objectTexture, 0);
+		GLuint edgeTexture = glGetUniformLocation(boardShader->ID, "edgeTexture");
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, edgeBuffer->renderedTexture);
+		glUniform1i(edgeTexture, 1);
+		board->linkCurrentBuffertoShader(boardShader->ID);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDisableVertexAttribArray(0);
+	}
+
+	
+
+
+
+
+	//glutSwapBuffers();
 }
+
+
 
 
 void updateScene() {
@@ -195,6 +222,43 @@ void updateScene() {
 	glutPostRedisplay();
 }
 
+// use ImGui to modify the distance of the cubes
+void my_display_code()
+{
+	ImGui::Begin("Parameters");
+	ImGui::SliderFloat("position", &threshold, -5.0f, 5.0f);
+	ImGui::Checkbox("Origin", &displayOrigin);
+	ImGui::Checkbox("Edge Extraction", &displayEdgeExtraction);
+	ImGui::Checkbox("Smooth Edge", &displaySmoothEdge);
+	ImGui::Checkbox("Final Result", &displayResult);
+	ImGui::End();
+
+}
+
+
+void glut_display_func()
+{
+	// Start the Dear ImGui frame
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGLUT_NewFrame();
+
+	my_display_code();
+	display();
+	
+
+
+	// Rendering
+	ImGui::Render();
+	ImGuiIO& io = ImGui::GetIO();
+	glViewport(0, 0, (GLsizei)io.DisplaySize.x, (GLsizei)io.DisplaySize.y);
+
+	glUseProgram(0);
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+	glutSwapBuffers();
+}
+
+
 
 
 
@@ -206,8 +270,8 @@ void init()
 	edgeShader->CompileShaders("../shaders/edgeVS.glsl", "../shaders/edgeFS.glsl");
 	boardShader = new Shader();
 	boardShader->CompileShaders("../shaders/boardVS.glsl", "../shaders/boardFS.glsl");
-	testShader = new Shader();
-	testShader->CompileShaders("../shaders/watercolorVS.glsl", "../shaders/watercolorFS.glsl");
+	backgroundShader = new Shader();
+	backgroundShader->CompileShaders("../shaders/watercolorVS.glsl", "../shaders/watercolorFS.glsl");
 
 	cubemesh = new Mesh();
 	cubemesh->generateObjectBufferMesh("../models/Futuristic combat jet.dae");
@@ -232,14 +296,33 @@ int main(int argc, char** argv) {
 
 	// Set up the window
 	glutInit(&argc, argv);
+#ifdef __FREEGLUT_EXT_H__
+	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
+#endif
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowSize(width, height);
-	glutCreateWindow("Hello Triangle");
+	glutCreateWindow("Watercolor");
+
+
+
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+
+	// init ImGui
+	ImGui_ImplGLUT_Init();
+	ImGui_ImplGLUT_InstallFuncs();
+	ImGui_ImplOpenGL3_Init();
 
 	// Tell glut where the display function is
-	glutDisplayFunc(display);
+	glutDisplayFunc(glut_display_func);
 	glutIdleFunc(updateScene);
-	glutKeyboardFunc(keypress);
+
+
 	// A call to glewInit() must be done after glut is initialized!
 	GLenum res = glewInit();
 	// Check for any errors
@@ -251,5 +334,11 @@ int main(int argc, char** argv) {
 	init();
 	// Begin infinite event loop
 	glutMainLoop();
+
+	// Cleanup ImGui
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGLUT_Shutdown();
+	ImGui::DestroyContext();
+
 	return 0;
 }
