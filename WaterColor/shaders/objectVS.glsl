@@ -21,7 +21,6 @@ void main(){
 	// use inverse() and transpose() function to avoid the scale problems
 	normalVector = normalize(inverse(transpose(mat3(model))) * vertex_normal).rgb;
 
-
 	// Convert position to clip coordinates and pass along
 	gl_Position = proj * view * model * vec4(vertex_position,1.0);
 }

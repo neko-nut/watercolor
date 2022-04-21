@@ -17,7 +17,7 @@ void Board::linkCurrentBuffertoShader(GLuint shaderProgramID) {
 
 	// find the location of the variables that we will be using in the shader program
 	GLuint positionID = glGetAttribLocation(shaderProgramID, "position");
-	GLuint textureID = glGetAttribLocation(shaderProgramID, "aTexCoord");
+	GLuint textureID = glGetAttribLocation(shaderProgramID, "TexCoordinate");
 
 	// Have to enable this
 	unsigned int vao;

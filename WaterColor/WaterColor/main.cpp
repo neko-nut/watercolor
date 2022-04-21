@@ -59,6 +59,7 @@ Shader* objectShader;
 Shader* edgeShader;
 Shader* boardShader;
 Shader* backgroundShader;
+Shader* smoothShader;
 Mesh* cubemesh;
 Texture* texture;
 Texture* texture2;
@@ -67,11 +68,14 @@ Board* board;
 FrameBuffer* objectBuffer;
 FrameBuffer* edgeBuffer;
 
-GLfloat threshold = 0;
-bool displayEdgeExtraction = false;
+GLfloat threshold = 0.1;
+int smoothPixel = 10.0;
+bool displayOrigin = true;
+bool displayEdge = false;
+bool displayExtractedEdge = false;
 bool displaySmoothEdge = false;
-bool displayOrigin = false;
-bool displayResult = true;
+bool displayResult = false;
+
 
 void display() {
 
@@ -125,9 +129,9 @@ void display() {
 	glUniform3fv(darkColor, 1, darkRedColor);
 	cube->linkCurrentBuffertoShader(objectShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
-
-
 	objectBuffer->viewBuffer(width, height);
+
+
 
 	edgeBuffer->bindBuffer();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -139,7 +143,6 @@ void display() {
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glDisableVertexAttribArray(0);
 	edgeBuffer->viewBuffer(width, height);
-
 
 
 	if (displayOrigin) {
@@ -155,7 +158,7 @@ void display() {
 	}
 
 
-	if (displayEdgeExtraction) {
+	if (displayEdge) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDisable(GL_DEPTH_TEST);
 		glUseProgram(backgroundShader->ID);
@@ -165,6 +168,51 @@ void display() {
 		glUniform1i(testObjectTexture, 0);
 		board->linkCurrentBuffertoShader(backgroundShader->ID);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
+	}
+
+	if (displayExtractedEdge) {
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glDisable(GL_DEPTH_TEST);
+		glUseProgram(smoothShader->ID);
+		GLuint objectTexture = glGetUniformLocation(smoothShader->ID, "objectTexture");
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
+		glUniform1i(objectTexture, 0);
+		GLuint edgeTexture = glGetUniformLocation(smoothShader->ID, "edgeTexture");
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, edgeBuffer->renderedTexture);
+		glUniform1i(edgeTexture, 1);
+		GLuint edgethreshold = glGetUniformLocation(smoothShader->ID, "edgethreshold");
+		glUniform1f(edgethreshold, (float)threshold);
+		GLuint numPixel = glGetUniformLocation(smoothShader->ID, "numBlurPixelsPerSide");
+		glUniform1f(numPixel, (float)smoothPixel);
+		board->linkCurrentBuffertoShader(smoothShader->ID);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDisableVertexAttribArray(0);
+	}
+
+
+	if (displaySmoothEdge) {
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glDisable(GL_DEPTH_TEST);
+
+		glUseProgram(boardShader->ID);
+		GLuint objectTexture = glGetUniformLocation(boardShader->ID, "objectTexture");
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
+		glUniform1i(objectTexture, 0);
+		GLuint edgeTexture = glGetUniformLocation(boardShader->ID, "edgeTexture");
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, edgeBuffer->renderedTexture);
+		glUniform1i(edgeTexture, 1);
+		GLuint numPixel = glGetUniformLocation(smoothShader->ID, "numBlurPixelsPerSide");
+		glUniform1f(numPixel, (float)smoothPixel);
+		GLuint edgethreshold = glGetUniformLocation(smoothShader->ID, "edgethreshold");
+		glUniform1f(edgethreshold, (float)threshold);
+		board->linkCurrentBuffertoShader(boardShader->ID);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDisableVertexAttribArray(0);
 	}
 
 	
@@ -189,15 +237,14 @@ void display() {
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, edgeBuffer->renderedTexture);
 		glUniform1i(edgeTexture, 1);
+		GLuint numPixel = glGetUniformLocation(smoothShader->ID, "numBlurPixelsPerSide");
+		glUniform1f(numPixel, (float)smoothPixel);
+		GLuint edgethreshold = glGetUniformLocation(smoothShader->ID, "edgethreshold");
+		glUniform1f(edgethreshold, (float)threshold);
 		board->linkCurrentBuffertoShader(boardShader->ID);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glDisableVertexAttribArray(0);
 	}
-
-	
-
-
-
 
 	//glutSwapBuffers();
 }
@@ -226,9 +273,12 @@ void updateScene() {
 void my_display_code()
 {
 	ImGui::Begin("Parameters");
-	ImGui::SliderFloat("position", &threshold, -5.0f, 5.0f);
+	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+	ImGui::SliderFloat("Threshold", &threshold, 0.0f, 1.0f);
+	ImGui::SliderInt("Smooth Pixel", &smoothPixel, 1.0f, 20.0f);
 	ImGui::Checkbox("Origin", &displayOrigin);
-	ImGui::Checkbox("Edge Extraction", &displayEdgeExtraction);
+	ImGui::Checkbox("Edge Detection", &displayEdge);
+	ImGui::Checkbox("Edge Extraction", &displayExtractedEdge);
 	ImGui::Checkbox("Smooth Edge", &displaySmoothEdge);
 	ImGui::Checkbox("Final Result", &displayResult);
 	ImGui::End();
@@ -245,8 +295,6 @@ void glut_display_func()
 	my_display_code();
 	display();
 	
-
-
 	// Rendering
 	ImGui::Render();
 	ImGuiIO& io = ImGui::GetIO();
@@ -271,7 +319,9 @@ void init()
 	boardShader = new Shader();
 	boardShader->CompileShaders("../shaders/boardVS.glsl", "../shaders/boardFS.glsl");
 	backgroundShader = new Shader();
-	backgroundShader->CompileShaders("../shaders/watercolorVS.glsl", "../shaders/watercolorFS.glsl");
+	backgroundShader->CompileShaders("../shaders/backgroundVS.glsl", "../shaders/backgroundFS.glsl");
+	smoothShader = new Shader();
+	smoothShader->CompileShaders("../shaders/smoothVS.glsl", "../shaders/smoothFS.glsl");
 
 	cubemesh = new Mesh();
 	cubemesh->generateObjectBufferMesh("../models/Futuristic combat jet.dae");

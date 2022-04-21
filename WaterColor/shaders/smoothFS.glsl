@@ -16,17 +16,8 @@ const float pi = 3.14159265f;
 uniform float numBlurPixelsPerSide = 10.0f;
 uniform float edgethreshold = 0.3;
 
-// ease-out functions
-float interpolation(float val){
-    val = (val - edgethreshold) / (0.9 - edgethreshold);
-    val = val * step(0, val);
-    val = min(1.0, val);
-    return 2 * val - val * val;
-}
-
 void main()
 {
-
     // calcualet the distance between pixels
     float dx = 1.0 / float(Width);
     float dy = 1.0 / float(Height);
@@ -66,12 +57,11 @@ void main()
         }
     }
 
-    // result 
+    // Shape Extression
     vec4 result = texture(objectTexture, TexCoord);
-    // darker color
     result.rgb = result.rgb - vec3(0.2, 0.2, 0.2);
-    // modify the transparency
-    result.a = interpolation(sumValue.x * 10);
+    result.a = step(edgethreshold, sumValue.x * 10);
+   
     gl_FragColor = result;
     
 }

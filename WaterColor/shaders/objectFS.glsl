@@ -10,6 +10,8 @@ uniform vec3 darkColor = vec3(0.0, 0.4, 0.0);
 void main(){
 	vec3 viewDirection = normalize(viewPosition - worldPosition);
 
+	// if it is face to us, use light color
+	// if it is side, use darker color
 	float NdotV = max(dot(normalVector,viewDirection),0);
 	vec3 result = max(objectColor * step(0.5, NdotV), darkColor * (1 - step(0.5, NdotV)));
 
