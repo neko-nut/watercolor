@@ -57,9 +57,10 @@ GLfloat rotate_y = 0.0f;
 
 Shader* objectShader;
 Shader* edgeShader;
+Shader* extractEdgeShader;
+Shader* smoothEdgeShader;
 Shader* boardShader;
-Shader* backgroundShader;
-Shader* smoothShader;
+
 Mesh* cubemesh;
 Texture* texture;
 Texture* texture2;
@@ -67,14 +68,15 @@ Cube* cube;
 Board* board;
 FrameBuffer* objectBuffer;
 FrameBuffer* edgeBuffer;
+FrameBuffer* darkEdgeBuffer;
 
 GLfloat threshold = 0.1;
 int smoothPixel = 10.0;
-bool displayOrigin = true;
+bool displayOrigin = false;
 bool displayEdge = false;
 bool displayExtractedEdge = false;
 bool displaySmoothEdge = false;
-bool displayResult = false;
+bool displayDarkerEdgeCube = true;
 
 
 void display() {
@@ -131,8 +133,6 @@ void display() {
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	objectBuffer->viewBuffer(width, height);
 
-
-
 	edgeBuffer->bindBuffer();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(edgeShader->ID);
@@ -144,16 +144,45 @@ void display() {
 	glDisableVertexAttribArray(0);
 	edgeBuffer->viewBuffer(width, height);
 
+	darkEdgeBuffer->bindBuffer();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glDisable(GL_DEPTH_TEST);
+	glUseProgram(boardShader->ID);
+	GLuint testObjectTexture = glGetUniformLocation(boardShader->ID, "objectTexture");
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
+	glUniform1i(testObjectTexture, 0);
+	board->linkCurrentBuffertoShader(boardShader->ID);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+
+	glUseProgram(smoothEdgeShader->ID);
+	GLuint objectTexture = glGetUniformLocation(smoothEdgeShader->ID, "objectTexture");
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
+	glUniform1i(objectTexture, 0);
+	GLuint edgeTexture = glGetUniformLocation(smoothEdgeShader->ID, "edgeTexture");
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, edgeBuffer->renderedTexture);
+	glUniform1i(edgeTexture, 1);
+	GLuint numPixel = glGetUniformLocation(smoothEdgeShader->ID, "numBlurPixelsPerSide");
+	glUniform1f(numPixel, (float)smoothPixel);
+	GLuint edgethreshold = glGetUniformLocation(smoothEdgeShader->ID, "edgethreshold");
+	glUniform1f(edgethreshold, (float)threshold);
+	board->linkCurrentBuffertoShader(smoothEdgeShader->ID);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glDisableVertexAttribArray(0);
+	darkEdgeBuffer->viewBuffer(width, height);
 
 	if (displayOrigin) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDisable(GL_DEPTH_TEST);
-		glUseProgram(backgroundShader->ID);
-		GLuint testObjectTexture = glGetUniformLocation(backgroundShader->ID, "objectTexture");
+		glUseProgram(boardShader->ID);
+		GLuint testObjectTexture = glGetUniformLocation(boardShader->ID, "objectTexture");
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
 		glUniform1i(testObjectTexture, 0);
-		board->linkCurrentBuffertoShader(backgroundShader->ID);
+		board->linkCurrentBuffertoShader(boardShader->ID);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
 
@@ -161,32 +190,32 @@ void display() {
 	if (displayEdge) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDisable(GL_DEPTH_TEST);
-		glUseProgram(backgroundShader->ID);
-		GLuint testObjectTexture = glGetUniformLocation(backgroundShader->ID, "objectTexture");
+		glUseProgram(boardShader->ID);
+		GLuint testObjectTexture = glGetUniformLocation(boardShader->ID, "objectTexture");
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, edgeBuffer->renderedTexture);
 		glUniform1i(testObjectTexture, 0);
-		board->linkCurrentBuffertoShader(backgroundShader->ID);
+		board->linkCurrentBuffertoShader(boardShader->ID);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
 
 	if (displayExtractedEdge) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDisable(GL_DEPTH_TEST);
-		glUseProgram(smoothShader->ID);
-		GLuint objectTexture = glGetUniformLocation(smoothShader->ID, "objectTexture");
+		glUseProgram(extractEdgeShader->ID);
+		GLuint objectTexture = glGetUniformLocation(extractEdgeShader->ID, "objectTexture");
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
 		glUniform1i(objectTexture, 0);
-		GLuint edgeTexture = glGetUniformLocation(smoothShader->ID, "edgeTexture");
+		GLuint edgeTexture = glGetUniformLocation(extractEdgeShader->ID, "edgeTexture");
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, edgeBuffer->renderedTexture);
 		glUniform1i(edgeTexture, 1);
-		GLuint edgethreshold = glGetUniformLocation(smoothShader->ID, "edgethreshold");
+		GLuint edgethreshold = glGetUniformLocation(extractEdgeShader->ID, "edgethreshold");
 		glUniform1f(edgethreshold, (float)threshold);
-		GLuint numPixel = glGetUniformLocation(smoothShader->ID, "numBlurPixelsPerSide");
+		GLuint numPixel = glGetUniformLocation(extractEdgeShader->ID, "numBlurPixelsPerSide");
 		glUniform1f(numPixel, (float)smoothPixel);
-		board->linkCurrentBuffertoShader(smoothShader->ID);
+		board->linkCurrentBuffertoShader(extractEdgeShader->ID);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glDisableVertexAttribArray(0);
 	}
@@ -197,53 +226,35 @@ void display() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDisable(GL_DEPTH_TEST);
 
-		glUseProgram(boardShader->ID);
-		GLuint objectTexture = glGetUniformLocation(boardShader->ID, "objectTexture");
+		glUseProgram(smoothEdgeShader->ID);
+		GLuint objectTexture = glGetUniformLocation(smoothEdgeShader->ID, "objectTexture");
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
 		glUniform1i(objectTexture, 0);
-		GLuint edgeTexture = glGetUniformLocation(boardShader->ID, "edgeTexture");
+		GLuint edgeTexture = glGetUniformLocation(smoothEdgeShader->ID, "edgeTexture");
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, edgeBuffer->renderedTexture);
 		glUniform1i(edgeTexture, 1);
-		GLuint numPixel = glGetUniformLocation(smoothShader->ID, "numBlurPixelsPerSide");
+		GLuint numPixel = glGetUniformLocation(smoothEdgeShader->ID, "numBlurPixelsPerSide");
 		glUniform1f(numPixel, (float)smoothPixel);
-		GLuint edgethreshold = glGetUniformLocation(smoothShader->ID, "edgethreshold");
+		GLuint edgethreshold = glGetUniformLocation(smoothEdgeShader->ID, "edgethreshold");
 		glUniform1f(edgethreshold, (float)threshold);
-		board->linkCurrentBuffertoShader(boardShader->ID);
+		board->linkCurrentBuffertoShader(smoothEdgeShader->ID);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glDisableVertexAttribArray(0);
 	}
 
 	
-	if (displayResult) {
+	if (displayDarkerEdgeCube) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDisable(GL_DEPTH_TEST);
-		glUseProgram(backgroundShader->ID);
-		GLuint testObjectTexture = glGetUniformLocation(backgroundShader->ID, "objectTexture");
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
-		glUniform1i(testObjectTexture, 0);
-		board->linkCurrentBuffertoShader(backgroundShader->ID);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-
-
 		glUseProgram(boardShader->ID);
-		GLuint objectTexture = glGetUniformLocation(boardShader->ID, "objectTexture");
+		GLuint testObjectTexture = glGetUniformLocation(boardShader->ID, "objectTexture");
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, objectBuffer->renderedTexture);
-		glUniform1i(objectTexture, 0);
-		GLuint edgeTexture = glGetUniformLocation(boardShader->ID, "edgeTexture");
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, edgeBuffer->renderedTexture);
-		glUniform1i(edgeTexture, 1);
-		GLuint numPixel = glGetUniformLocation(smoothShader->ID, "numBlurPixelsPerSide");
-		glUniform1f(numPixel, (float)smoothPixel);
-		GLuint edgethreshold = glGetUniformLocation(smoothShader->ID, "edgethreshold");
-		glUniform1f(edgethreshold, (float)threshold);
+		glBindTexture(GL_TEXTURE_2D, darkEdgeBuffer->renderedTexture);
+		glUniform1i(testObjectTexture, 0);
 		board->linkCurrentBuffertoShader(boardShader->ID);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
-		glDisableVertexAttribArray(0);
 	}
 
 	//glutSwapBuffers();
@@ -280,7 +291,7 @@ void my_display_code()
 	ImGui::Checkbox("Edge Detection", &displayEdge);
 	ImGui::Checkbox("Edge Extraction", &displayExtractedEdge);
 	ImGui::Checkbox("Smooth Edge", &displaySmoothEdge);
-	ImGui::Checkbox("Final Result", &displayResult);
+	ImGui::Checkbox("Final Result", &displayDarkerEdgeCube);
 	ImGui::End();
 
 }
@@ -316,12 +327,12 @@ void init()
 	objectShader->CompileShaders("../shaders/objectVS.glsl", "../shaders/objectFS.glsl");
 	edgeShader = new Shader();
 	edgeShader->CompileShaders("../shaders/edgeVS.glsl", "../shaders/edgeFS.glsl");
+	extractEdgeShader = new Shader();
+	extractEdgeShader->CompileShaders("../shaders/extractEdgeVS.glsl", "../shaders/extractEdgeFS.glsl");
+	smoothEdgeShader = new Shader();
+	smoothEdgeShader->CompileShaders("../shaders/smoothEdgeVS.glsl", "../shaders/smoothEdgeFS.glsl");
 	boardShader = new Shader();
 	boardShader->CompileShaders("../shaders/boardVS.glsl", "../shaders/boardFS.glsl");
-	backgroundShader = new Shader();
-	backgroundShader->CompileShaders("../shaders/backgroundVS.glsl", "../shaders/backgroundFS.glsl");
-	smoothShader = new Shader();
-	smoothShader->CompileShaders("../shaders/smoothVS.glsl", "../shaders/smoothFS.glsl");
 
 	cubemesh = new Mesh();
 	cubemesh->generateObjectBufferMesh("../models/Futuristic combat jet.dae");
@@ -340,6 +351,8 @@ void init()
 	objectBuffer->generateTextureBuffer(width, height);
 	edgeBuffer = new FrameBuffer();
 	edgeBuffer->generateTextureBuffer(width, height);
+	darkEdgeBuffer = new FrameBuffer();
+	darkEdgeBuffer->generateTextureBuffer(width, height);
 
 }
 int main(int argc, char** argv) {

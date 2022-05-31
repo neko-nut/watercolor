@@ -19,8 +19,6 @@ void Cube::generateObjectBuffer() {
 	glGenBuffers(1, &vt_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vt_vbo);
 	glBufferData(GL_ARRAY_BUFFER, texture.size() * sizeof(vec2), &texture[0].v[0], GL_STATIC_DRAW);
-	
-
 
 }
 
