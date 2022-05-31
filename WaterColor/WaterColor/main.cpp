@@ -59,11 +59,12 @@ Shader* objectShader;
 Shader* edgeShader;
 Shader* extractEdgeShader;
 Shader* smoothEdgeShader;
+Shader* intensityShader;
 Shader* boardShader;
 
 Mesh* cubemesh;
-Texture* texture;
-Texture* texture2;
+Texture* paperTexture;
+Texture* watercolorTexture;
 Cube* cube;
 Board* board;
 FrameBuffer* objectBuffer;
@@ -76,7 +77,7 @@ bool displayOrigin = false;
 bool displayEdge = false;
 bool displayExtractedEdge = false;
 bool displaySmoothEdge = false;
-bool displayDarkerEdgeCube = true;
+bool displayDarkerEdgeCube = false;
 
 
 void display() {
@@ -144,6 +145,8 @@ void display() {
 	glDisableVertexAttribArray(0);
 	edgeBuffer->viewBuffer(width, height);
 
+
+
 	darkEdgeBuffer->bindBuffer();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
@@ -154,7 +157,6 @@ void display() {
 	glUniform1i(testObjectTexture, 0);
 	board->linkCurrentBuffertoShader(boardShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
-
 
 	glUseProgram(smoothEdgeShader->ID);
 	GLuint objectTexture = glGetUniformLocation(smoothEdgeShader->ID, "objectTexture");
@@ -173,6 +175,27 @@ void display() {
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glDisableVertexAttribArray(0);
 	darkEdgeBuffer->viewBuffer(width, height);
+
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glDisable(GL_DEPTH_TEST);
+	glUseProgram(intensityShader->ID);
+	GLuint intensityObjectTexture = glGetUniformLocation(intensityShader->ID, "objectTexture");
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, darkEdgeBuffer->renderedTexture);
+	glUniform1i(intensityObjectTexture, 0);
+	GLuint intensityPaperTexture = glGetUniformLocation(intensityShader->ID, "paperTexture");
+	glActiveTexture(GL_TEXTURE1);
+	paperTexture->Bind(GL_TEXTURE1);
+	glUniform1i(intensityPaperTexture, 1);
+	GLuint intensityWatercolorTexture = glGetUniformLocation(intensityShader->ID, "watercolorTexture");
+	glActiveTexture(GL_TEXTURE2);
+	watercolorTexture->Bind(GL_TEXTURE2);
+	glUniform1i(intensityWatercolorTexture, 2);
+	board->linkCurrentBuffertoShader(intensityShader->ID);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+
 
 	if (displayOrigin) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -331,16 +354,18 @@ void init()
 	extractEdgeShader->CompileShaders("../shaders/extractEdgeVS.glsl", "../shaders/extractEdgeFS.glsl");
 	smoothEdgeShader = new Shader();
 	smoothEdgeShader->CompileShaders("../shaders/smoothEdgeVS.glsl", "../shaders/smoothEdgeFS.glsl");
+	intensityShader = new Shader();
+	intensityShader->CompileShaders("../shaders/intensityVS.glsl", "../shaders/intensityFS.glsl");
 	boardShader = new Shader();
 	boardShader->CompileShaders("../shaders/boardVS.glsl", "../shaders/boardFS.glsl");
 
 	cubemesh = new Mesh();
 	cubemesh->generateObjectBufferMesh("../models/Futuristic combat jet.dae");
 
-	texture = new Texture(GL_TEXTURE_2D, "../textures/Floor_C.jpg");
-	texture->Load();
-	texture2 = new Texture(GL_TEXTURE_2D, "../textures/Floor_N.jpg");
-	texture2->Load();
+	paperTexture = new Texture(GL_TEXTURE_2D, "../textures/intensity.jpg");
+	paperTexture->Load();
+	watercolorTexture = new Texture(GL_TEXTURE_2D, "../textures/watercolor.jpg");
+	watercolorTexture->Load();
 
 	cube = new Cube();
 	cube->generateObjectBuffer();
