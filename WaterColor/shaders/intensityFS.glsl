@@ -2,17 +2,11 @@
 
 in vec2 TexCoord;
 
-uniform sampler2D objectTexture;
-uniform sampler2D paperTexture;
-uniform sampler2D watercolorTexture;
+uniform sampler2D intensityTexture;
+
 void main()
 {
-	vec4 watercolor = texture(watercolorTexture , TexCoord) * 2;
-	vec4 paper = texture(paperTexture , TexCoord);
-	vec4 result = texture(objectTexture , TexCoord);
-	float density = paper.x + paper.y + paper.z;
-	density = density / 2;
-	result = result - (result - result * result) * (density - 1);
-
+	vec4 intensity = texture(intensityTexture , TexCoord);
+	vec4 result = vec4(vec3(1.0), 1 - intensity.x);
     gl_FragColor = result;
 }

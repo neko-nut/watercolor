@@ -41,9 +41,9 @@ using namespace std;
 int width = 800;
 int height = 600;
 
-GLfloat lightGreenColor[3] = { 0.8f, 1.0f, 0.8f };
-GLfloat lightRedColor[3] = { 1.0f, 0.8f, 0.8f };
-GLfloat lightBlueColor[3] = { 0.8f, 0.8f, 1.0f };
+GLfloat lightGreenColor[3] = { 0.6f, 0.8f, 0.6f };
+GLfloat lightRedColor[3] = { 0.8f, 0.6f, 0.6f };
+GLfloat lightBlueColor[3] = { 0.6f, 0.6f, 0.8f };
 GLfloat lightYellowColor[3] = { 0.9f, 0.9f, 0.7f };
 GLfloat lightGrayColor[3] = { 0.8f, 0.8f, 0.8f };
 
@@ -147,7 +147,7 @@ void display() {
 
 
 
-	darkEdgeBuffer->bindBuffer();
+	//darkEdgeBuffer->bindBuffer();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
 	glUseProgram(boardShader->ID);
@@ -174,24 +174,14 @@ void display() {
 	board->linkCurrentBuffertoShader(smoothEdgeShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glDisableVertexAttribArray(0);
-	darkEdgeBuffer->viewBuffer(width, height);
+	//darkEdgeBuffer->viewBuffer(width, height);
 
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDisable(GL_DEPTH_TEST);
 	glUseProgram(intensityShader->ID);
-	GLuint intensityObjectTexture = glGetUniformLocation(intensityShader->ID, "objectTexture");
+	GLuint intensityPaperTexture = glGetUniformLocation(intensityShader->ID, "intensityTexture");
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, darkEdgeBuffer->renderedTexture);
-	glUniform1i(intensityObjectTexture, 0);
-	GLuint intensityPaperTexture = glGetUniformLocation(intensityShader->ID, "paperTexture");
-	glActiveTexture(GL_TEXTURE1);
-	paperTexture->Bind(GL_TEXTURE1);
-	glUniform1i(intensityPaperTexture, 1);
-	GLuint intensityWatercolorTexture = glGetUniformLocation(intensityShader->ID, "watercolorTexture");
-	glActiveTexture(GL_TEXTURE2);
-	watercolorTexture->Bind(GL_TEXTURE2);
-	glUniform1i(intensityWatercolorTexture, 2);
+	paperTexture->Bind(GL_TEXTURE0);
+	glUniform1i(intensityPaperTexture, 0);
 	board->linkCurrentBuffertoShader(intensityShader->ID);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
