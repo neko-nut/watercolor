@@ -1,3 +1,7 @@
+## Video
+
+https://www.bilibili.com/video/BV1yZ4y147cL/?spm_id_from=333.999.0.0&vd_source=0f1b9e43b076f0953bf1cf5297eec647
+
 ## Abstract
 Watercolor rendering is a kind of non-photorealistic rendering method. It uses a specific way to render the object and product a watercolor appearance. One of the key steps in watercolor rendering is wet-in-wet and wet-to-dry painting. It simulates the wet color blocks painted on the wet paper or the dry paper. In this assignment, I have implemented a wet-in-wet and wet-to-dry simulation on the edge of the color blocks. I use the convolution function to detect the edge, and use Gaussian blur to extract the edge. Then use interpolation to smooth the color change and apply the darker edge layer to the original object. The result looks like the drawing of the color block on the wet paper and the edge is blending with the paper.
 
@@ -15,7 +19,7 @@ The last step is the soft shadow rendering. The blurred depth test has been used
 
 ## Implementation details
 
- I use three cubes to display the rendering result. The color of these cubes is red, blue, and green. The front part of the cube is lighter, and the side part is darker.
+I use three cubes to display the rendering result. The color of these cubes is red, blue, and green. The front part of the cube is lighter, and the side part is darker.
 
  ### Framebuffer
 
@@ -52,5 +56,12 @@ The ease-out function is a kind of interpolation function that changes quicker i
 ### Translucent Layer
 
 In this approach, instead of modifying the original texture directly, I use the translucent layer to darker the edge. The color of this layer is darker than the original object, and the transparency depends on the value we calculated before. The transparency is higher when the pixel is close to the edge, and lower when it is far from the edge. Therefore, at the edge, we can only see the darker color, and it gradually blends with the original color. I use the basic blending function in OpenGL to blend the translucent layer and the original layer.
+
+## Reference
+
+[1] Luft, Thomas, and Oliver Deussen. "Real-time watercolor illustrations of plants using a blurred depth test." Proceedings of the 4th International Symposium on Non-photorealistic Animation and Rendering. 2006. 
+[2] Luft, Thomas, and Oliver Deussen. "Interactive watercolor animations." Computer Graphics and Applications (PG'05). 2005.
+[3] LearnOpenGL: Framebuffers (https://learnopengl.com/Advanced-OpenGL/Framebuffers)
+[4] LearnOpenGL: Blending (https://learnopengl.com/Advanced-OpenGL/Blending)
 
 This design is open to improvement and adding new things. For instance, if we want to add the shadow, we can easily add a new translucent layer without modifying the original one. So different layers will not affect each other, which provides the freedom to add and modify any appearance we want.
